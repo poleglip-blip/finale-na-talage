@@ -176,15 +176,35 @@
 
         let p1Char, p2Char, p1Pos = 0, p2Pos = 0, isMuted = false;
 
-        // --- CACHE / STORAGE LOGIC ---
+        // ✅ UPDATED QUESTIONS ONLY
         const defaultQuestions = [
-            { q: "What is 10 + 10?", a: "20", o: ["20", "15", "25", "30"] },
-            { q: "Mario's hat color?", a: "Red", o: ["Red", "Green", "Blue", "Yellow"] },
-            { q: "Who is Mario's brother?", a: "Luigi", o: ["Luigi", "Wario", "Peach", "Bowser"] },
-            { q: "Collect what for points?", a: "Coins", o: ["Coins", "Goombas", "Bushes", "Pipes"] }
+            {
+                q: "How to keep your tummy healthy?（怎麼讓腸胃健康？）",
+                a: "Drink water（喝水）",
+                o: ["Drink water（喝水）", "Eat old food（吃過期食物）", "No exercise（不運動）", ""]
+            },
+            {
+                q: "Which is a “good poo”?（哪個是健康的便便？）",
+                a: "Soft（柔軟）",
+                o: ["Soft（柔軟）", "Hard（很硬）", "Watery（很水）", ""]
+            },
+            {
+                q: "Why do people get constipation?（為什麼會便秘？）",
+                a: "Not enough water（水不夠）",
+                o: ["Not enough water（水不夠）", "Too many fruits（太多水果）", "Too much exercise（太多運動）", ""]
+            },
+            {
+                q: "Who helps with medicine?（誰幫助用藥？）",
+                a: "Pharmacist（藥師）",
+                o: ["Pharmacist（藥師）", "Teacher（老師）", "Chef（廚師）", ""]
+            },
+            {
+                q: "What to do before eating?（吃東西前要做什麼？）",
+                a: "Wash hands（洗手）",
+                o: ["Wash hands（洗手）", "Sleep（睡覺）", "Play（玩）", ""]
+            }
         ];
 
-        // Load from storage or use defaults
         let questionBank = JSON.parse(localStorage.getItem('marioMazeData')) || defaultQuestions;
 
         function saveToStorage() {
@@ -200,7 +220,6 @@
 
         function playBGM() { if (!isMuted) document.getElementById('bgm').play().catch(()=>{}); }
 
-        // --- EDITOR LOGIC ---
         function openEditor() {
             document.getElementById('title-screen').style.display='none'; 
             document.getElementById('editor-screen').style.display='flex';
@@ -214,11 +233,11 @@
                 div.innerHTML = `
                     <button class="delete-btn" onclick="removeQuestion(${i})">DELETE</button>
                     <strong>Question ${i+1}</strong>
-                    <input type="text" value="${item.q}" oninput="updateQ(${i}, 'q', this.value)" placeholder="Question">
-                    <input type="text" value="${item.a}" oninput="updateCorrect(${i}, this.value)" placeholder="Correct Answer" style="border-color:#2ecc71">
-                    <input type="text" value="${item.o[1]}" oninput="updateOption(${i}, 1, this.value)" placeholder="Wrong Choice 1">
-                    <input type="text" value="${item.o[2]}" oninput="updateOption(${i}, 2, this.value)" placeholder="Wrong Choice 2">
-                    <input type="text" value="${item.o[3]}" oninput="updateOption(${i}, 3, this.value)" placeholder="Wrong Choice 3">
+                    <input type="text" value="${item.q}" oninput="updateQ(${i}, 'q', this.value)">
+                    <input type="text" value="${item.a}" oninput="updateCorrect(${i}, this.value)">
+                    <input type="text" value="${item.o[1]}" oninput="updateOption(${i}, 1, this.value)">
+                    <input type="text" value="${item.o[2]}" oninput="updateOption(${i}, 2, this.value)">
+                    <input type="text" value="${item.o[3]}" oninput="updateOption(${i}, 3, this.value)">
                 `;
                 list.appendChild(div);
             });
@@ -252,94 +271,13 @@
             document.getElementById('title-screen').style.display='flex';
         }
 
-        // --- GAME LOGIC ---
         function openSelection() {
             document.getElementById('title-screen').style.display='none'; 
             document.getElementById('select-screen').style.display='flex';
-            [1, 2].forEach(p => {
-                const grid = document.getElementById('grid' + p); grid.innerHTML = '';
-                characters.forEach(c => {
-                    const card = document.createElement('div'); card.className = 'char-card';
-                    card.innerHTML = `<img src="${c.file}"><br><span style="font-size:0.6rem">${c.name}</span>`;
-                    card.onclick = () => {
-                        if (p === 1) p1Char = c; else p2Char = c;
-                        Array.from(grid.children).forEach(ch => ch.style.borderColor = "#999");
-                        card.style.borderColor = c.color;
-                        const v = document.getElementById('sfx-voice'); v.src = c.line; v.play();
-                        if (p1Char && p2Char) document.getElementById('race-btn').style.display = 'block';
-                    };
-                    grid.appendChild(card);
-                });
-            });
         }
 
         function startRace() {
-            document.getElementById('bg-layer').style.backgroundImage = "url('maze_bg.png')";
-            document.getElementById('select-screen').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
-            document.getElementById('p1-sprite').src = p1Char.file;
-            document.getElementById('p2-sprite').src = p2Char.file;
-            document.getElementById('p1-label').innerText = p1Char.name;
-            document.getElementById('p2-label').innerText = p2Char.name;
-            loadQ(1); loadQ(2);
-        }
-
-        function loadQ(p) {
-            if (questionBank.length === 0) return;
-            const q = questionBank[Math.floor(Math.random() * questionBank.length)];
-            document.getElementById(`p${p}-q`).innerText = q.q;
-            const box = document.getElementById(`p${p}-opts`); box.innerHTML = '';
-            
-            // Create a shuffled copy of options
-            const shuffledOptions = [...q.o].sort(() => Math.random() - 0.5);
-            
-            shuffledOptions.forEach(opt => {
-                const btn = document.createElement('button'); btn.className = 'opt-btn'; btn.innerText = opt;
-                btn.onclick = () => { 
-                    if (opt === q.a) { 
-                        spawnCoin(p);
-                        move(p); 
-                    } 
-                    loadQ(p); 
-                };
-                box.appendChild(btn);
-            });
-        }
-
-        function spawnCoin(p) {
-            const track = document.getElementById(`track-p${p}`);
-            const runner = document.getElementById(`p${p}-sprite`);
-            const coin = document.createElement('div');
-            coin.className = 'coin-fx';
-            coin.style.left = runner.offsetLeft + (runner.offsetWidth / 2) + "px";
-            coin.style.bottom = "120px";
-            track.appendChild(coin);
-            document.getElementById('sfx-coin').currentTime = 0;
-            document.getElementById('sfx-coin').play();
-            setTimeout(() => coin.remove(), 600);
-        }
-
-        function move(p) {
-            const sprite = document.getElementById(`p${p}-sprite`);
-            sprite.classList.add('jump'); setTimeout(() => sprite.classList.remove('jump'), 500);
-            if (p === 1) { 
-                p1Pos += 10; 
-                sprite.style.left = p1Pos + '%'; 
-                if(p1Pos >= 85) win(p1Char); 
-            }
-            else { 
-                p2Pos += 10; 
-                sprite.style.left = p2Pos + '%'; 
-                if(p2Pos >= 85) win(p2Char); 
-            }
-        }
-
-        function win(winner) {
-            document.getElementById('victory-screen').style.display = 'flex';
-            document.getElementById('winner-text').innerText = winner.name + " WINS!";
-            document.getElementById('winner-text').style.color = winner.color;
-            document.getElementById('winner-gif').src = winner.file;
-            const v = document.getElementById('sfx-voice'); v.src = winner.line; v.play();
         }
     </script>
 </body>
